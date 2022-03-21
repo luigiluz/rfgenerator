@@ -59,7 +59,7 @@ unsigned int i = 0;
 double RFout, REFin, INT, OutputChannelSpacing, FRACF;
 unsigned int PFDRFout, powerprint=4, powerlevel=1, sweepflag=0, submenuflag=0, sweepcount=0;
 double RFoutMin = 35, RFoutMax = 4400, REFinMax = 250, PDFMax = 32;
-unsigned int long RFint,RFintold,INTA,RFcalc, sweepcalc,sweepcalc2,PDRFout, MOD, FRAC, sweepf1=6500, sweepf2=7500;
+unsigned int long RFint,RFintold,INTA,RFcalc, sweepcalc,sweepcalc2,PDRFout, MOD, FRAC, sweepf1=10000, sweepf2=240000;
 byte OutputDivider;byte lock=2;
 unsigned int long reg0, reg1;
 
@@ -467,13 +467,8 @@ void outputcontrol(){
       digitalWrite(0, HIGH);
       digitalWrite(1, LOW);
     }
-
-    if(RFout < 1300){
-    digitalWrite(0, HIGH);
-    digitalWrite(1, HIGH);  
-    }
-    
-    if (RFout < 1100) {
+ 
+    if (RFout < 1300) {
       OutputDivider = 4;
       bitWrite (registers[4], 22, 0);
       bitWrite (registers[4], 21, 1);
@@ -487,7 +482,7 @@ void outputcontrol(){
       bitWrite (registers[4], 22, 0);
       bitWrite (registers[4], 21, 1);
       bitWrite (registers[4], 20, 1);
-      digitalWrite(0, HIGH);
+      digitalWrite(0, LOW);
       digitalWrite(1, HIGH);
     }
 
