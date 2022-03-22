@@ -1,39 +1,26 @@
-//   ADF4251 and Arduino
-//   By Alain Fort F1CJN feb 2,2016
-//   updated by Arthur Liraneto July 4th, 2021 (ROBOT V1.1 and V1.0)
+//   Gerador de sinal de RF 2.4GHz com Arduino
+//   código base de Alain Fort F1CJN feb 2,2016
+//   modificado por Arthur Liraneto 21/03/2022 (ROBOT V1.1 and V1.0)
 //
-//  *************************************************** ENGLISH ***********************************************************
+//  *************************************************** PORTUGUÊS ***********************************************************
 //
-//  This sketch uses and Arduino Uno (5€), a standard "LCD buttons shield" from ROBOT (5€), with buttons and an ADF4351 chineese
-//  card found at EBAY (40€). The frequency can be programmed between 34.5 and 4400 MHz.
-//  Twenty frequencies can be memorized into the Arduino EEPROM.
-//  If one or more frequencies are memorized, then at power on, the memory zero is always selected.
+//  O código base de Alain Fort utiliza Arduino Uno, um shield de display LCD padrão da ROBOT com botões, e um sintetizador ADF4351 facilmente encontrado
+//  na internet. A modificação inserida por Arthur Liraneto adiciona um Switch de RF HMC241, 3 filtros Chebyshev próprios e 1 combinador de RF 2.4GHz comercial
+//  de baixo custo encontrado em lojas de antenas.
+//  A frequência pode ser ajustada com resolução de 10kHz de 35MHz até 2.4 GHz com máxima performance, porém, acima desta frequência, o projeto precisa
+//  de um combinador de mais alta frequência e ajustes respectivos de nível de potência de saída.
+//  Vinte frequências podem ser memorizadas na EEPROM do Arduino. Ao ligar, a memória zero é sempre selecionada
+//  O cursor pode se mover com os botões de esquerda e direita. Os números podem ser alterados com os botões para cima e para baixo.
+//  - Para ler ou escrever a frequência na memória, coloque o cursor mais a esquerda na primeira tela com REE (leitura) ou WEE (escrita).
+//  - O cursor desaparece após alguns segundos e é reativado automaticamente ao pressionar um botão.
 //
-//   The cursor can move with le LEFT and RIGHT buttons. Then the underlined digit can be modified with the UP and DOWN buttons, 
-//    for the frequency, the memories and the frequency reference (10 or 25 MHz):
-//   - to change the frequency, move the cursor to the digit to be modified, then use the UP and DOWN buttons,
-//   - to modify the memory number,move the cursor to the number to be modified, then use the UP and DOWN buttons,
-//   - to select the refrence frequence,move the cursor on 10 or 25 and select with UP and DOWN.
-//   - to read or write the frequency in memory, place the cursor on the more left/more down position and select REE (for Reading EEprom)
-//    or WEE (for Writing EEprom).
-//    The cursor dissapears after few seconds and is re activated if a button is pressed.
-//
-//   MEMORIZATION 
-//    - For the frequency, select WEE, then select the memory number, then push the SELECT button for a second. The word MEMORISATION 
-//    appears on the screen. This memorization works then the cursor is anywhere except on the reference 10 or 25 position.
-//    - For the reference frequency, move the cursor to 10 or 25, the press the SELECT for one second. 
-
-//  ******************************************** HARDWARE IMPORTANT********************************************************
-//  With an Arduino UN0 : uses a resistive divider to reduce the voltage, MOSI (pin 11) to
-//  ADF DATA, SCK (pin13) to ADF CLK, Select (PIN 3) to ADF LE
-//  Resistive divider 560 Ohm with 1000 Ohm to ground on Arduino pins 11, 13 et 3 to adapt from 5V
-//  to 3.3V the digital signals DATA, CLK and LE send by the Arduino.
-//  Arduino pin 2 (for lock detection) directly connected to ADF4351 card MUXOUT.
-//  The ADF card is 5V powered by the ARDUINO (PINs +5V and GND are closed to the Arduino LED).
+//  MEMORIZAÇÃO
+//  - Para a frequência, selecione WEE, e depois selecione o número de memória e em seguida pressione o botão select por 1 segundo.
+//  A palavra memorização aparece na tela. Após isso o cursor pode ir para outro lugar.
+//  - Para a frequência de referência, mova o cursor para os números 10 ou 25 e pressione select por 1 segundo.
 
 //*************************************************************************************************************************
-// Warning : if you are using a ROBOT Shied version 1.1, it is necessary to modify the read_lcd_buttons sub routine 
-// you need not to comment the 1.1 version and to comment the 1.0 version. See below
+// ATENÇÃO: se vc estiver utilizando o shield ROBOT 1.1, é necessário alterar a função read_lcd_buttons.
 
 #include <LiquidCrystal.h>
 #include <EEPROM.h>
@@ -43,16 +30,16 @@
 
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 
-byte poscursor = 0; //position curseur courante 0 à 15
-byte line = 0; // ligne afficheur LCD en cours 0 ou 1
-byte memoire,RWtemp; // numero de la memoire EEPROM
+byte poscursor = 0; //posição corrente do cursor 0 à 15
+byte line = 0; // linha do display LCD em curso 0 ou 1
+byte memoire,RWtemp; // numero da memória EEPROM
 
-uint32_t registers[6] =  {0x4580A8, 0x80080C9, 0x4E42, 0x4B3, 0xBC803C, 0x580005} ; // 437 MHz avec ref à 25 MHz
-//uint32_t registers[6] =  {0, 0, 0, 0, 0xBC803C, 0x580005} ; // 437 MHz avec ref à 25 MHz
+uint32_t registers[6] =  {0x4580A8, 0x80080C9, 0x4E42, 0x4B3, 0xBC803C, 0x580005} ; // 437 MHz com referência à 25 MHz
+//uint32_t registers[6] =  {0, 0, 0, 0, 0xBC803C, 0x580005} ; // 437 com referência à 25 MHz
 int address,modif=0,WEE=0;
 int lcd_key = 0;
 int adc_key_in  = 0;
-int timer = 0,timer2=0; // utilisé pour mesurer la durée d'appui sur une touche
+int timer = 0,timer2=0; // utilizado para medir a duração do aperto de um botão
 unsigned int i = 0;
 
 
@@ -70,28 +57,28 @@ unsigned int long reg0, reg1;
 #define btnSELECT 4
 #define btnNONE   5
 
-//**************************** SP LECTURE BOUTONS ********************************************
+//**************************** SP LEITURA DOS BOTOES ********************************************
 int read_LCD_buttons()
 {
-  adc_key_in = analogRead(0);      // read the value from the buttons
+  adc_key_in = analogRead(0);      // lê o valor dos botões
   if (adc_key_in < 790)lcd.blink();
   
-  if (adc_key_in < 50)return btnRIGHT;  // pour Afficheur ROBOT V1.0
+  if (adc_key_in < 50)return btnRIGHT;  // para o display ROBOT V1.0
   if (adc_key_in < 195)return btnUP;
   if (adc_key_in < 380)return btnDOWN;
   if (adc_key_in < 555)return btnLEFT;
-  if (adc_key_in < 790)return btnSELECT; // Fin Afficheur ROBOT1.1
+  if (adc_key_in < 790)return btnSELECT; // Fim do display ROBOT1.1
 
-  //if (adc_key_in < 50)return btnRIGHT; // pour Afficheur ROBOT 1.1
+  //if (adc_key_in < 50)return btnRIGHT; // para o display ROBOT 1.1
   //if (adc_key_in < 250)return btnUP;
   //if (adc_key_in < 450)return btnDOWN;
   //if (adc_key_in < 650)return btnLEFT;
-  //if (adc_key_in < 850)return btnSELECT; // fin Afficheur ROBOT 1.1
+  //if (adc_key_in < 850)return btnSELECT; // Fim do display ROBOT 1.1
 
-  return btnNONE;  // touches non appuyees
+  return btnNONE;  // sem aperto de botão
 }
 
-//***************************** SP Affichage Fréquence sur LCD ********************************
+//***************************** SP Mostradores de frequência no display LCD ********************************
 void printAll ()
 {
   //RFout=1001.10 // test
@@ -150,37 +137,37 @@ void printsubmenu ()
     
 }
 
-void WriteRegister32(const uint32_t value)   //Programme un registre 32bits
+void WriteRegister32(const uint32_t value)   //Programa um registrador 32bits
 {
   digitalWrite(ADF4351_LE, LOW);
-  for (int i = 3; i >= 0; i--)          // boucle sur 4 x 8bits
-  SPI.transfer((value >> 8 * i) & 0xFF); // décalage, masquage de l'octet et envoi via SPI
+  for (int i = 3; i >= 0; i--)          // quebra em 4 x 8bits
+  SPI.transfer((value >> 8 * i) & 0xFF); // deslocamento, máscara de envio de byte via SPI
   digitalWrite(ADF4351_LE, HIGH);
   digitalWrite(ADF4351_LE, LOW);
 }
 
-void SetADF4351()  // Programme tous les registres de l'ADF4351
-{ for (int i = 5; i >= 0; i--)  // programmation ADF4351 en commencant par R5
+void SetADF4351()  // programa todos os registradores do ADF4351
+{ for (int i = 5; i >= 0; i--)  // programação ADF4351 comença pelo R5
     WriteRegister32(registers[i]);
 }
 
 void processbuttons(){
 
-lcd_key = read_LCD_buttons();  // read the buttons
+lcd_key = read_LCD_buttons();  // lê os botões
 
-  switch (lcd_key)               // Select action
+  switch (lcd_key)               // Seleciona a ação
   {
-    case btnRIGHT: //Droit
-      poscursor++; // cursor to the right
+    case btnRIGHT: //Direita
+      poscursor++; // cursor para a direita
       if (line == 0) {
         if(submenuflag==1){
-        if (poscursor == 7 ) { poscursor = 8;line = 0; } //si curseur sur le .
+        if (poscursor == 7 ) { poscursor = 8;line = 0; } //se o cursor está no ponto "."
         if (poscursor == 10 ) { poscursor = 15;line = 0; }
-        if (poscursor == 16 ) {poscursor = 3; line = 1; }; //si curseur à droite
+        if (poscursor == 16 ) {poscursor = 3; line = 1; }; //se o cursor está a direita
       }else{
-        if (poscursor == 7 ) { poscursor = 8;line = 0; } //si curseur sur le .
+        if (poscursor == 7 ) { poscursor = 8;line = 0; } //se o cursor está no ponto "."
         if (poscursor == 10 ) { poscursor = 15;line = 0; }
-        if (poscursor == 16 ) {poscursor = 5; line = 1; }; //si curseur à droite
+        if (poscursor == 16 ) {poscursor = 5; line = 1; }; //se o cursor está a direita
       }
       }
      if (line == 1) {
@@ -189,8 +176,8 @@ lcd_key = read_LCD_buttons();  // read the buttons
         if (poscursor == 10 ) {poscursor = 15; line = 1; }
         if (poscursor==16) {poscursor=3; line=0;};     
       }else{
-        if (poscursor == 1 ) {poscursor = 5; line = 1; } //si curseur sur le chiffre memoire 
-        if (poscursor == 6 ) {poscursor = 12; line = 1; } //si curseur sur le chiffre memoire 
+        if (poscursor == 1 ) {poscursor = 5; line = 1; } //se o cursor está nos números de memória
+        if (poscursor == 6 ) {poscursor = 12; line = 1; } //se o cursor está nos números de memória
         if (poscursor == 13 ) {poscursor = 15; line = 1; }
         if (poscursor==16) {poscursor=3; line=0;};   
       }
@@ -260,7 +247,7 @@ lcd_key = read_LCD_buttons();  // read the buttons
       }else{
         if (poscursor == 5){ memoire++; 
         if (memoire==20)memoire=0;
-        if (WEE==0){RFint=EEPROMReadlong(memoire*4); // lecture EEPROM et Affichage
+        if (WEE==0){RFint=EEPROMReadlong(memoire*4); // Leitura EEPROM e mostrador
            if (RFint>440000) RFint=440000; 
            } 
         }  
@@ -332,15 +319,15 @@ lcd_key = read_LCD_buttons();  // read the buttons
       }else{
         if (poscursor == 5){memoire--; 
         if (memoire==255)memoire=19;
-        if (WEE==0){RFint=EEPROMReadlong(memoire*4); // lecture EEPROM et Affichage
+        if (WEE==0){RFint=EEPROMReadlong(memoire*4); // leitura EEPROM e mostrador
            if (RFint>440000) RFint=440000;
           } 
         } // fin poscursor =5 
 
        if (poscursor==12){ 
-       if( PFDRFout==10){PFDRFout=25;} //reglage FREF
+       if( PFDRFout==10){PFDRFout=25;} //regulagem de frequência
        else if ( PFDRFout==25){PFDRFout=10;}
-       else PFDRFout=25;// au cas ou PFDRF different de 10 et 25
+       else PFDRFout=25;// no caso de PFDRF ser diferente de 10 e 25
        modif=1;
        }
 
@@ -358,12 +345,12 @@ lcd_key = read_LCD_buttons();  // read the buttons
  
     case btnSELECT:
       do {
-        adc_key_in = analogRead(0);      // Test release button
-        delay(1); timer2++;        // timer inc toutes les 1 millisecondes
-        if (timer2 > 600) { //attente 600 millisecondes
+        adc_key_in = analogRead(0);      // Testa soltar o botão
+        delay(1); timer2++;        // increcementa o timer a cada 1 milisegundo
+        if (timer2 > 600) { //aguarda 600 milisegundos
          if (WEE==1 || poscursor==15){ 
-         if (line==1 && poscursor==15){ EEPROMWritelong(20*4,PFDRFout);EEPROM.write(100,55);} // ecriture FREF
-         else if (WEE==1) {EEPROMWritelong(memoire*4,RFint);EEPROM.write(101,55);}// ecriture RF en EEPROM à adresse (memoire*4)
+         if (line==1 && poscursor==15){ EEPROMWritelong(20*4,PFDRFout);EEPROM.write(100,55);} // escrita FREF
+         else if (WEE==1) {EEPROMWritelong(memoire*4,RFint);EEPROM.write(101,55);}// escrita RF na EEPROM no endereço de memória*4
           lcd.setCursor(0,1); lcd.print("  MEMORISATION  ");}
           lcd.setCursor(poscursor,line);
           delay(500);timer2=0;
@@ -371,8 +358,8 @@ lcd_key = read_LCD_buttons();  // read the buttons
         }; // mes
 
         } 
-      while (adc_key_in < 900); // attente relachement
-      break;  // Fin bouton Select
+      while (adc_key_in < 900); // espera soltar o botão
+      break;  // fim do botão select
       
      case btnNONE: {
       break;
@@ -451,44 +438,108 @@ void outputcontrol(){
   
   if ((RFint != RFintold)|| (modif==1) || (sweepflag==1)) {
 
-    if (RFout >= 2200) {
+    if (RFout > 2200) {
       OutputDivider = 1;
       bitWrite (registers[4], 22, 0);
       bitWrite (registers[4], 21, 0);
       bitWrite (registers[4], 20, 0);
+      bitWrite (registers[4], 5, 1);//bit0 output power P1
+      bitWrite (registers[4], 3, 0);//bit0 output power P1
+      bitWrite (registers[4], 4, 0);//bit1 output power P1
       digitalWrite(0, HIGH);
       digitalWrite(1, LOW);
     }
-    if (RFout < 2200) {
+    if (RFout <= 2200) {
       OutputDivider = 2;
       bitWrite (registers[4], 22, 0);
       bitWrite (registers[4], 21, 0);
       bitWrite (registers[4], 20, 1);
+      bitWrite (registers[4], 5, 1);//bit0 output power P2
+      bitWrite (registers[4], 3, 1);//bit0 output power P2
+      bitWrite (registers[4], 4, 0);//bit1 output power P2
       digitalWrite(0, HIGH);
       digitalWrite(1, LOW);
     }
- 
-    if (RFout < 1300) {
+
+    if (RFout <=2050){
+      bitWrite (registers[4], 5, 1);//bit0 output power P3
+      bitWrite (registers[4], 3, 0);//bit0 output power P3
+      bitWrite (registers[4], 4, 1);//bit1 output power P3
+      }
+
+    if(RFout <=1960){
+      bitWrite (registers[4], 5, 1);//bit0 output power P2
+      bitWrite (registers[4], 3, 0);//bit0 output power P2
+      bitWrite (registers[4], 4, 0);//bit1 output power P2
+    }
+
+    if(RFout <=1850){
+      bitWrite (registers[4], 5, 1);//bit0 output power P1
+      bitWrite (registers[4], 3, 0);//bit0 output power P1
+      bitWrite (registers[4], 4, 0);//bit1 output power P1
+    }
+
+    if(RFout <=1650){
+      bitWrite (registers[4], 5, 1);//bit0 output power P2
+      bitWrite (registers[4], 3, 1);//bit0 output power P2
+      bitWrite (registers[4], 4, 0);//bit1 output power P2
+    }    
+    
+    if(RFout <=1450){
+      bitWrite (registers[4], 5, 1);//bit0 output power P2
+      bitWrite (registers[4], 3, 1);//bit0 output power P2
+      bitWrite (registers[4], 4, 0);//bit1 output power P2
+      digitalWrite(0, HIGH);
+      digitalWrite(1, HIGH);      
+    }    
+
+    if (RFout <=1250){
+      bitWrite (registers[4], 5, 1);//bit0 output power P1
+      bitWrite (registers[4], 3, 0);//bit0 output power P1
+      bitWrite (registers[4], 4, 0);//bit1 output power P1
+      }   
+
+    if (RFout <= 1100) {
       OutputDivider = 4;
       bitWrite (registers[4], 22, 0);
       bitWrite (registers[4], 21, 1);
-      bitWrite (registers[4], 20, 0);
-      digitalWrite(0, HIGH);
-      digitalWrite(1, HIGH);
-      }
+      bitWrite (registers[4], 20, 0);    
+      }            
 
+    if (RFout <=1100){
+      bitWrite (registers[4], 5, 1);//bit0 output power P3
+      bitWrite (registers[4], 3, 0);//bit0 output power P3
+      bitWrite (registers[4], 4, 1);//bit1 output power P3
+      }  
+
+    if (RFout <=900){
+      bitWrite (registers[4], 5, 1);//bit0 output power P2
+      bitWrite (registers[4], 3, 1);//bit0 output power P2
+      bitWrite (registers[4], 4, 0);//bit1 output power P2
+      }      
+
+    if (RFout <=700){
+      bitWrite (registers[4], 5, 1);//bit0 output power P3
+      bitWrite (registers[4], 3, 0);//bit0 output power P3
+      bitWrite (registers[4], 4, 1);//bit1 output power P3
+      }                       
+
+    if (RFout < 660)  {
+      bitWrite (registers[4], 5, 1);//bit0 output power P4
+      bitWrite (registers[4], 3, 1);//bit0 output power P4
+      bitWrite (registers[4], 4, 1);//bit1 output power P4   
+      digitalWrite(0, LOW);
+      digitalWrite(1, HIGH);         
+    }
+    
     if (RFout < 550)  {
       OutputDivider = 8;
       bitWrite (registers[4], 22, 0);
       bitWrite (registers[4], 21, 1);
-      bitWrite (registers[4], 20, 1);
-      digitalWrite(0, LOW);
-      digitalWrite(1, HIGH);
-    }
-
-    if(RFout < 450){
-      digitalWrite(0, LOW);
-      digitalWrite(1, HIGH);
+      bitWrite (registers[4], 20, 1);   
+      bitWrite (registers[4], 5, 1);//bit0 output power P2
+      bitWrite (registers[4], 3, 1);//bit0 output power P2
+      bitWrite (registers[4], 4, 0);//bit1 output power P2 
     }
     
     if (RFout < 275)  {
@@ -496,6 +547,9 @@ void outputcontrol(){
       bitWrite (registers[4], 22, 1);
       bitWrite (registers[4], 21, 0);
       bitWrite (registers[4], 20, 0);
+      bitWrite (registers[4], 5, 1);//bit0 output power P2
+      bitWrite (registers[4], 3, 1);//bit0 output power P2
+      bitWrite (registers[4], 4, 0);//bit1 output power P2       
       digitalWrite(0, LOW);
       digitalWrite(1, LOW);
     }
@@ -519,7 +573,7 @@ void outputcontrol(){
     INTA = (RFout * OutputDivider) / PFDRFout;
     MOD = (PFDRFout / OutputChannelSpacing);
     FRACF = (((RFout * OutputDivider) / PFDRFout) - INTA) * MOD;
-    FRAC = round(FRACF); // On arrondit le résultat
+    FRAC = round(FRACF); // arrendonda o resultado
 
     registers[0] = 0;
     registers[0] = INTA << 15; // OK
@@ -528,14 +582,14 @@ void outputcontrol(){
 
     registers[1] = 0;
     registers[1] = MOD << 3;
-    registers[1] = registers[1] + 1 ; // ajout de l'adresse "001"
-    bitSet (registers[1], 27); // Prescaler sur 8/9
+    registers[1] = registers[1] + 1 ; // adiciona o endereço "001"
+    bitSet (registers[1], 27); // Prescaler em 8/9
 
-    bitSet (registers[2], 28); // Digital lock == "110" sur b28 b27 b26
-    bitSet (registers[2], 27); // digital lock 
-    bitClear (registers[2], 26); // digital lock
+    bitSet (registers[2], 28); // Travado digitalmente == "110" nos b28 b27 b26
+    bitSet (registers[2], 27); // Travado digitalmente
+    bitClear (registers[2], 26); // Travado digitalmente
    
-    SetADF4351();  // Programme tous les registres de l'ADF4351
+    SetADF4351();  // Programa todos os registros do ADF4351
     
     RFintold=RFint;
     
@@ -546,7 +600,7 @@ void outputcontrol(){
   }
 }
 
-// *************** SP ecriture Mot long (32bits) en EEPROM  entre adress et adress+3 **************
+// *************** SP escrita de palavra long (32bits) na EEPROM entre endereço e endereço+3 **************
 void EEPROMWritelong(int address, long value)
       {
       //Decomposition du long (32bits) en 4 bytes
@@ -563,7 +617,7 @@ void EEPROMWritelong(int address, long value)
       EEPROM.write(address + 3, un);
       }
 
-// *************** SP lecture Mot long (32bits) en EEPROM situe entre adress et adress+3 **************
+// *************** SP leitura de palavra long (32bits) na EEPROM entre endereço e endereço+3 **************
 long EEPROMReadlong(long address)
       {
       //Read the 4 bytes from the eeprom memory.
@@ -572,16 +626,16 @@ long EEPROMReadlong(long address)
       long deux = EEPROM.read(address + 2);
       long un = EEPROM.read(address + 3);
 
-      //Retourne le long(32bits) en utilisant le shift de 0, 8, 16 et 24 bits et des masques
+      //Retourne le long(32bits) utilizando o deslocamento de 0, 8, 16 e 24 bits e as máscaras
       return ((quatre << 0) & 0xFF) + ((trois << 8) & 0xFFFF) + ((deux << 16) & 0xFFFFFF) + ((un << 24) & 0xFFFFFFFF);
       }
 //************************************ Setup ****************************************
 void setup() {
-  lcd.begin(16, 2); // two 16 characters lines
+  lcd.begin(16, 2); // duas linhas de 16 caracteres
   lcd.display();
-  analogWrite(10,255); //Luminosite LCD
+  analogWrite(10,255); //Luminosidade LCD
 
-  //Serial.begin (115200); //  Serial to the PC via Arduino "Serial Monitor"  at 19200
+  //Serial.begin (115200); //  Serial para o PC via Arduino "Serial Monitor"  com taxa 19200
   lcd.print("    GERADOR   ");
   lcd.setCursor(0, 1);
   lcd.print("    ADF4351     ");
@@ -591,24 +645,24 @@ void setup() {
   lcd.print("Mod por Liraneto");
    delay(1000);
 
-  pinMode(2, INPUT);  // PIN 2 en entree pour lock
-  pinMode(ADF4351_LE, OUTPUT);          // Setup pins
+  pinMode(2, INPUT);  // PIN 2 na entrada para travamento
+  pinMode(ADF4351_LE, OUTPUT);          // pinos setup
   pinMode(0,OUTPUT); // RF switch control
   pinMode(1,OUTPUT); // RF switch control
   digitalWrite(ADF4351_LE, HIGH);
-  SPI.begin();                          // Init SPI bus
-  SPI.setDataMode(SPI_MODE0);           // CPHA = 0 et Clock positive
-  SPI.setBitOrder(MSBFIRST);            // poids forts en tête
+  SPI.begin();                          // Inicia barramento SPI
+  SPI.setDataMode(SPI_MODE0);           // CPHA = 0 e Clock positivos
+  SPI.setBitOrder(MSBFIRST);            // peso forte na frente
 
-  if (EEPROM.read(100)==55){PFDRFout=EEPROM.read(20*4);} // si la ref est ecrite en EEPROM, on la lit
+  if (EEPROM.read(100)==55){PFDRFout=EEPROM.read(20*4);} // se a referência é escrita na EEPROM, nós a ligamos
   else {PFDRFout=25;}
 
-  if (EEPROM.read(101)==55){RFint=EEPROMReadlong(memoire*4);} // si une frequence est ecrite en EEPROM on la lit
+  if (EEPROM.read(101)==55){RFint=EEPROMReadlong(memoire*4);} // se a referência é escrita na EEPROM, nós a ligamos
   else {RFint=7000;}
 
-  RFintold=1234;//pour que RFintold soit different de RFout lors de l'init
-  RFout = RFint/100 ; // fréquence de sortie
-  OutputChannelSpacing = 0.01; // Pas de fréquence = 10kHz
+  RFintold=1234;//para que RFintold seja diferente de RFout assim que é iniciado
+  RFout = RFint/100 ; // frequência de saída
+  OutputChannelSpacing = 0.01; // Sem frequência = 10kHz
 
   WEE=0;  address=0;
   lcd.blink();
@@ -616,7 +670,7 @@ void setup() {
   delay(500);
 
 
-} // Fin setup
+} // Fim setup
 
 //*************************************Loop***********************************
 void loop()
@@ -639,4 +693,4 @@ void loop()
     lcd.noBlink();timer=0;
     }
 
-}   // fin loop
+}   // fim loop
