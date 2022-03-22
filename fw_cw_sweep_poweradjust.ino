@@ -424,7 +424,7 @@ while(sweepflag==1){
       RFint=sweepf1;
       sweepcount=0;
       }else{
-      RFint=RFint+10000; //precisa ser baseado no RFint com ele mesmo
+      RFint=RFint+1000; //precisa ser baseado no RFint com ele mesmo
       }
     }
 
@@ -469,7 +469,7 @@ void outputcontrol(){
 
     if(RFout <=1960){
       bitWrite (registers[4], 5, 1);//bit0 output power P2
-      bitWrite (registers[4], 3, 0);//bit0 output power P2
+      bitWrite (registers[4], 3, 1);//bit0 output power P2
       bitWrite (registers[4], 4, 0);//bit1 output power P2
     }
 
@@ -484,20 +484,44 @@ void outputcontrol(){
       bitWrite (registers[4], 3, 1);//bit0 output power P2
       bitWrite (registers[4], 4, 0);//bit1 output power P2
     }    
+
+    if(RFout <=1570){
+      bitWrite (registers[4], 5, 1);//bit0 output power P3
+      bitWrite (registers[4], 3, 0);//bit0 output power P3
+      bitWrite (registers[4], 4, 1);//bit1 output power P3
+    }        
     
     if(RFout <=1450){
+      bitWrite (registers[4], 5, 1);//bit0 output power P3
+      bitWrite (registers[4], 3, 0);//bit0 output power P3
+      bitWrite (registers[4], 4, 1);//bit1 output power P3
+      digitalWrite(0, HIGH);
+      digitalWrite(1, HIGH);      
+    }   
+
+    if(RFout <=1400){
       bitWrite (registers[4], 5, 1);//bit0 output power P2
       bitWrite (registers[4], 3, 1);//bit0 output power P2
       bitWrite (registers[4], 4, 0);//bit1 output power P2
-      digitalWrite(0, HIGH);
-      digitalWrite(1, HIGH);      
-    }    
+    }   
+
+    if(RFout <=1300){
+      bitWrite (registers[4], 5, 1);//bit0 output power P1
+      bitWrite (registers[4], 3, 0);//bit0 output power P1
+      bitWrite (registers[4], 4, 0);//bit1 output power P1
+    }         
 
     if (RFout <=1250){
       bitWrite (registers[4], 5, 1);//bit0 output power P1
       bitWrite (registers[4], 3, 0);//bit0 output power P1
       bitWrite (registers[4], 4, 0);//bit1 output power P1
       }   
+
+    if (RFout <=1230){
+      bitWrite (registers[4], 5, 1);//bit0 output power P2
+      bitWrite (registers[4], 3, 1);//bit0 output power P2
+      bitWrite (registers[4], 4, 0);//bit1 output power P2
+      }      
 
     if (RFout <= 1100) {
       OutputDivider = 4;
@@ -512,11 +536,23 @@ void outputcontrol(){
       bitWrite (registers[4], 4, 1);//bit1 output power P3
       }  
 
+    if (RFout <=930){
+      bitWrite (registers[4], 5, 1);//bit0 output power P2
+      bitWrite (registers[4], 3, 1);//bit0 output power P2
+      bitWrite (registers[4], 4, 0);//bit1 output power P2
+      }        
+
     if (RFout <=900){
       bitWrite (registers[4], 5, 1);//bit0 output power P2
       bitWrite (registers[4], 3, 1);//bit0 output power P2
       bitWrite (registers[4], 4, 0);//bit1 output power P2
-      }      
+      }  
+
+    if (RFout <=770){
+      bitWrite (registers[4], 5, 1);//bit0 output power P3
+      bitWrite (registers[4], 3, 0);//bit0 output power P3
+      bitWrite (registers[4], 4, 1);//bit1 output power P3
+      }          
 
     if (RFout <=700){
       bitWrite (registers[4], 5, 1);//bit0 output power P3
@@ -527,9 +563,9 @@ void outputcontrol(){
     if (RFout < 660)  {
       bitWrite (registers[4], 5, 1);//bit0 output power P4
       bitWrite (registers[4], 3, 1);//bit0 output power P4
-      bitWrite (registers[4], 4, 1);//bit1 output power P4   
+      bitWrite (registers[4], 4, 1);//bit1 output power P4 
       digitalWrite(0, LOW);
-      digitalWrite(1, HIGH);         
+      digitalWrite(1, HIGH);           
     }
     
     if (RFout < 550)  {
@@ -537,22 +573,37 @@ void outputcontrol(){
       bitWrite (registers[4], 22, 0);
       bitWrite (registers[4], 21, 1);
       bitWrite (registers[4], 20, 1);   
+      bitWrite (registers[4], 5, 1);//bit0 output power P1
+      bitWrite (registers[4], 3, 0);//bit0 output power P1
+      bitWrite (registers[4], 4, 0);//bit1 output power P1 
+      digitalWrite(0, LOW);
+      digitalWrite(1, HIGH);
+    }
+
+    if (RFout <=540){
       bitWrite (registers[4], 5, 1);//bit0 output power P2
       bitWrite (registers[4], 3, 1);//bit0 output power P2
-      bitWrite (registers[4], 4, 0);//bit1 output power P2 
-    }
+      bitWrite (registers[4], 4, 0);//bit1 output power P2
+      } 
     
     if (RFout < 275)  {
       OutputDivider = 16;
       bitWrite (registers[4], 22, 1);
       bitWrite (registers[4], 21, 0);
       bitWrite (registers[4], 20, 0);
-      bitWrite (registers[4], 5, 1);//bit0 output power P2
-      bitWrite (registers[4], 3, 1);//bit0 output power P2
-      bitWrite (registers[4], 4, 0);//bit1 output power P2       
+      bitWrite (registers[4], 5, 1);//bit0 output power P4
+      bitWrite (registers[4], 3, 1);//bit0 output power P4
+      bitWrite (registers[4], 4, 1);//bit1 output power P4       
       digitalWrite(0, LOW);
       digitalWrite(1, LOW);
     }
+
+    if (RFout <=230){
+      bitWrite (registers[4], 5, 1);//bit0 output power P2
+      bitWrite (registers[4], 3, 1);//bit0 output power P2
+      bitWrite (registers[4], 4, 0);//bit1 output power P2
+      }     
+    
     if (RFout < 137.5) {
       OutputDivider = 32;
       bitWrite (registers[4], 22, 1);
